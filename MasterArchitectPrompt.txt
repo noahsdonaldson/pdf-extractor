@@ -28,3 +28,152 @@ Use pydantic.create_model for dynamic schemas.
 Git Strategy: After completing each major task (e.g., G1-G3, B1), please suggest a clear commit message.
 
 Please confirm you have read the files and are ready to initialize the repository.
+
+___________________________________________________________________________________________________________
+
+The "Phase 2: Intelligence & Mapping" Prompt
+
+Use this prompt in your IDE to have the agent implement the LLM logic and the coordinate-matching engine.
+
+
+
+Current Objective: Implement Phase 2 (Tasks B3 and B4) of the @plan.md.
+
+
+Goal: Create the extraction engine that takes a user-defined schema, calls OpenAI, and maps the results back to the PDF coordinates using fuzzy matching.
+
+
+Requirements for this step:
+
+
+Task B3 (LLM Call):
+
+Create an endpoint /extract that accepts the file_id, the json_schema, and the openai_api_key.
+Use the instructor library to patch the OpenAI client.
+Use the dynamic Pydantic model utility (from Task B2) to enforce the LLM output.
+Crucial: Modify the prompt to the LLM so that for every field it extracts, it also returns a field called _context_snippet containing the exact string it found in the document.
+Task B4 (Fuzzy Matcher):
+
+Implement a service using RapidFuzz (or similar) to compare the _context_snippet against the "Token Map" generated in Task B1.
+The goal is to find the block_id or coordinates that most closely match the snippet.
+Return the final JSON data along with the bounding box coordinates for each field.
+
+Git Strategy: After implementing the fuzzy matcher and verifying the LLM response, suggest a commit message for "Phase 2: LLM Extraction and Coordinate Mapping."
+
+
+Please show me the implementation for the /extract endpoint and the fuzzy matching logic.
+
+When the AI builds the dynamic Pydantic model, ensure it adds a hidden or metadata field to every object. For example, if the user wants invoice_number, the LLM should return:
+{
+  "invoice_number": "INV-123",
+  "invoice_number_context": "Invoice No: INV-123"
+}
+
+Handling "Lists": If the user extracts a list of items, ensure the fuzzy matcher runs for each item in that list so you can highlight individual rows in the PDF.
+
+API Key Safety: Ensure the agent is passing the API key in the request header or a secure body field, and not hardcoding it into the backend environment.
+
+
+The "Phase 3: Frontend & Interaction" Prompt
+
+Copy this into your IDE to begin the UI implementation.
+
+
+
+Current Objective: Implement Phase 3 (Tasks F2 through F5) of the @plan.md.
+
+
+Goal: Build the interactive React frontend that allows users to define nested schemas and visualize PDF extractions with highlighting.
+
+
+Requirements for this step:
+
+
+Task F2 (Recursive Schema Builder):
+
+Create a state-driven UI where users can add fields.
+Each field needs a name and a type (String, Number, Object, List).
+Nesting: If a type is "Object" or "List", it should allow adding sub-fields recursively.
+Task F3 (PDF Viewer & SVG Overlay):
+
+Use react-pdf to render the uploaded document in the left column.
+Create an SVG Overlay component that sits on top of each PDF page.
+It should take coordinate data (x0, y0, x1, y1) and render a semi-transparent rectangle.
+Task F4 & F5 (Settings & Persistence):
+
+Add a sidebar or header for the OpenAI API Key and Document Title.
+Implement a "Save Template" button that stores the current schema structure in localStorage.
+
+Technical Guidance:
+
+
+Use Tailwind CSS for a clean, professional dual-column layout.
+Ensure the "Schema Builder" state is a single JSON object that can be sent directly to the Backend's /extract endpoint.
+Highlight Logic: When a user clicks a "Result" field in the right column, it should trigger the SVG overlay in the left column.
+
+Git Strategy: Suggest a commit message for "Phase 3: Interactive Schema Builder and PDF Viewer."
+
+
+Please provide the code for the SchemaBuilder component and the PDFViewer with the SVG overlay.
+
+
+
+
+Implementation Advice for your AI Agent:
+
+The Recursive Component: Tell the AI to use a functional component that calls itself for nested objects. This is the cleanest way to handle the "List of Objects" requirement.
+Coordinate Scaling: PDF coordinates from PyMuPDF are usually in "points" (72 DPI). react-pdf might render at a different scale depending on the container width. Remind the AI to: "Ensure the SVG overlay scales correctly based on the rendered width of the PDF page."
+The "Extract" Payload: Ensure the frontend sends the schema in the exact JSON format your Backend's Task B2 expects.
+________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+The "Phase 4: Final Integration" Prompt
+
+Copy this into your IDE to complete the project.
+
+
+
+Current Objective: Implement Phase 4 (Tasks I1 and I2) of the @plan.md.
+
+
+Goal: Connect the React frontend to the FastAPI backend to perform the full extraction workflow.
+
+
+Requirements for this step:
+
+
+Task I1 (The Data Bridge):
+
+In the React app, implement the handleExtract function.
+It must send a POST request to the backend /extract endpoint containing:
+The PDF file (as FormData or via a pre-uploaded file_id).
+The json_schema object generated by the Schema Builder.
+The openai_api_key from the user settings.
+Implement a Loading State (spinner/progress bar) while the LLM is processing.
+Task I2 (The Highlight Event):
+
+When the backend returns the extracted JSON (including the coordinate data), render this data in a "Results" view.
+Interaction: When a user clicks on a value in the Results view, pass its coordinates to the PDFViewer component to trigger the SVG highlight box.
+Ensure the highlight "clears" when clicking elsewhere.
+
+Technical Watch-items:
+
+
+CORS: Ensure the FastAPI backend has CORSMiddleware enabled to allow requests from the Vite dev server.
+Coordinate Scaling: Double-check that the (x, y) coordinates from the backend are correctly mapped to the react-pdf page dimensions in the browser.
+
+Git Strategy: Suggest a final commit message for "Phase 4: Full System Integration and Bidirectional Highlighting."
+
+
+Please provide the integration logic for the main App.tsx and the updated ResultsView component.
+
+
+
+
+Final "Agent" Advice for Success:
+
+The "FormData" Gotcha: Since you are sending a File + JSON + API Key, your AI agent might try to send it as a simple JSON body. Remind it: "Use FormData to append the file and JSON.stringify the schema into a form field if sending them in one request."
+Fuzzy Search Debugging: If the highlights aren't appearing, check the browser console. The backend might be finding the text but the frontend might be failing to "draw" it. Ask the AI to: "Add console logs for the coordinates received from the backend to verify the data flow."
+The "Aha!" Moment: Once Task I2 is working, try uploading a 2-page invoice, defining a "Total" field, and clicking the result. If the red box appears over the "Total" on the PDF, your Spec-Driven project is a success!
+
+perform Task I3 (Final Push) and your MVP is complete. How does it feel to be at the final step?
+
