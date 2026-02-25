@@ -1,0 +1,30 @@
+I am building an Interactive PDF Extraction Tool using a Spec-Driven Approach.
+
+
+Please read the following three files:
+
+
+@requirements.md
+@plan.md
+@tasks.md
+
+Your Role: Act as a Senior Full-Stack Developer.
+
+
+Current Objective: Start with Phase 0 and Phase 1.
+
+
+Initialize a Git repository with a monorepo structure (/frontend and /backend).
+Create the .gitignore and README.md.
+Scaffold the FastAPI backend and React frontend.
+Implement Task B1 (PDF indexing with PyMuPDF).
+
+Technical Requirements:
+
+
+Use Vite for the React frontend.
+Use instructor for LLM calls.
+Use pydantic.create_model for dynamic schemas.
+Git Strategy: After completing each major task (e.g., G1-G3, B1), please suggest a clear commit message.
+
+Please confirm you have read the files and are ready to initialize the repository.
