@@ -6,3 +6,5 @@ pydantic
 instructor
 openai
 rapidfuzz
+httpx
+certifi

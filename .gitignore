@@ -10,6 +10,14 @@ logs/
 .env.*
 !.env.example
 
+# Local enterprise proxy/cert settings (never commit)
+backend/certs/
+backend/*.pem
+backend/*.crt
+backend/*.cer
+backend/.env.local
+backend/.env.enterprise
+
 # Python
 __pycache__/
 *.py[cod]

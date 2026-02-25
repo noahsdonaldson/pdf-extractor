@@ -32,6 +32,18 @@ Spec-driven monorepo for extracting structured data from PDFs with area-based va
 3. Run API:
    - `uvicorn app.main:app --reload`
 
+#### Enterprise Proxy / Custom CA (Local Only)
+
+If your network requires a custom certificate chain (for example Cisco proxy interception), keep this local and uncommitted:
+
+- Set `OPENAI_CA_BUNDLE` to your full CA chain file path.
+- Optionally set `OPENAI_PROXY_URL` if your proxy is not already available via `HTTPS_PROXY`.
+- Example (local shell only):
+   - `export OPENAI_CA_BUNDLE=~/certs/cisco-chain.pem`
+   - `export OPENAI_PROXY_URL=http://proxy.company.local:8080`
+
+The repository `.gitignore` is configured to ignore common local cert/proxy files under `backend/`.
+
 ### Frontend
 
 1. From `frontend/`, install dependencies:
