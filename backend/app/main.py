@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.extract import router as extract_router
 from app.api.pdf import router as pdf_router
 
 app = FastAPI(title="Interactive PDF Extraction API", version="0.1.0")
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(pdf_router)
+app.include_router(extract_router)
 
 
 @app.get("/health")

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.models.pdf_index import PdfIndexResponse
+from app.services.document_store import store_indexed_document
 from app.services.pdf_indexer import index_pdf
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
@@ -16,4 +17,9 @@ async def index_pdf_endpoint(file: UploadFile = File(...)) -> PdfIndexResponse:
         raise HTTPException(status_code=400, detail="Uploaded PDF is empty.")
 
     indexed = index_pdf(pdf_bytes)
-    return PdfIndexResponse(page_images=indexed.page_images, token_map=indexed.token_map)
+    indexed_document = store_indexed_document(indexed.token_map)
+    return PdfIndexResponse(
+        file_id=indexed_document.file_id,
+        page_images=indexed.page_images,
+        token_map=indexed.token_map,
+    )

@@ -19,5 +19,6 @@ class PageImage(BaseModel):
 
 
 class PdfIndexResponse(BaseModel):
+    file_id: str
     page_images: list[PageImage]
     token_map: list[TextBlock]
