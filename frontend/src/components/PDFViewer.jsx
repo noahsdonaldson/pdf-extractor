@@ -9,11 +9,37 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString()
 
-export default function PDFViewer({ pdfFile, highlights, activePath, title }) {
+export default function PDFViewer({ pdfFile, highlights, activePath, title, onDropFile }) {
   const containerRef = useRef(null)
   const [containerWidth, setContainerWidth] = useState(0)
   const [numPages, setNumPages] = useState(0)
   const [pageDimensions, setPageDimensions] = useState({})
+  const [isDraggingFile, setIsDraggingFile] = useState(false)
+
+  const handleDragOver = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDraggingFile(true)
+  }
+
+  const handleDragLeave = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDraggingFile(false)
+  }
+
+  const handleDrop = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setIsDraggingFile(false)
+
+    const file = event.dataTransfer?.files?.[0]
+    if (!file) {
+      return
+    }
+
+    onDropFile?.(file)
+  }
 
   useEffect(() => {
     const element = containerRef.current
@@ -46,8 +72,18 @@ export default function PDFViewer({ pdfFile, highlights, activePath, title }) {
 
   if (!pdfFile) {
     return (
-      <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-        Upload a PDF to preview it here.
+      <div
+        onDragEnter={handleDragOver}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`rounded-md border border-dashed p-6 text-sm transition-colors ${
+          isDraggingFile
+            ? 'border-amber-500 bg-amber-50 text-amber-900'
+            : 'border-slate-300 bg-slate-50 text-slate-500'
+        }`}
+      >
+        Drag and drop a PDF here, or use the file picker above.
       </div>
     )
   }

@@ -36,6 +36,20 @@ function App() {
     setPdfFile(file)
   }
 
+  const handlePdfDrop = (file) => {
+    if (!file) {
+      return
+    }
+
+    if (file.type !== 'application/pdf') {
+      setExtractError('Only PDF files are supported for upload.')
+      return
+    }
+
+    setExtractError('')
+    setPdfFile(file)
+  }
+
   const handleSaveTemplate = () => {
     localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(schema))
   }
@@ -203,6 +217,7 @@ function App() {
             highlights={fieldMatches}
             activePath={activePath}
             title={documentTitle}
+            onDropFile={handlePdfDrop}
           />
         </section>
 
