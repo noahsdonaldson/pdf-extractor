@@ -21,4 +21,4 @@
 ## Integration & Deployment
 - [x] **Task I1:** Connect "Extract" button to backend and handle loading states.
 - [x] **Task I2:** Implement bidirectional highlight event.
-- [ ] **Task I3:** Final push to GitHub with clear commit messages for each feature.
+- [x] **Task I3:** Final push to GitHub with clear commit messages for each feature.
