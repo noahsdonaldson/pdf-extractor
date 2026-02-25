@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import PDFViewer from './components/PDFViewer'
+import ResultsView from './components/ResultsView'
 import SchemaBuilder from './components/SchemaBuilder'
 
 const TEMPLATE_STORAGE_KEY = 'pdf-extractor:schema-template'
@@ -18,11 +19,11 @@ function App() {
   const [documentTitle, setDocumentTitle] = useState('')
   const [schema, setSchema] = useState(defaultSchema)
   const [pdfFile, setPdfFile] = useState(null)
-  const [resultPayloadInput, setResultPayloadInput] = useState('')
   const [resultData, setResultData] = useState(null)
   const [fieldMatches, setFieldMatches] = useState([])
   const [activePath, setActivePath] = useState('')
-  const [resultError, setResultError] = useState('')
+  const [extractError, setExtractError] = useState('')
+  const [isExtracting, setIsExtracting] = useState(false)
 
   const schemaJsonPreview = useMemo(() => JSON.stringify(schema, null, 2), [schema])
 
@@ -55,22 +56,86 @@ function App() {
     }
   }
 
-  const handleLoadResults = () => {
-    setResultError('')
+  useEffect(() => {
+    const onDocumentClick = (event) => {
+      if (!(event.target instanceof Element)) {
+        return
+      }
 
-    if (!resultPayloadInput.trim()) {
-      setResultData(null)
-      setFieldMatches([])
+      if (event.target.closest('[data-result-item="true"]')) {
+        return
+      }
+
+      setActivePath('')
+    }
+
+    window.document.addEventListener('click', onDocumentClick)
+    return () => {
+      window.document.removeEventListener('click', onDocumentClick)
+    }
+  }, [])
+
+  const handleExtract = async () => {
+    setExtractError('')
+
+    if (!pdfFile) {
+      setExtractError('Please upload a PDF before extracting.')
       return
     }
 
+    if (!openAiApiKey.trim()) {
+      setExtractError('Please provide an OpenAI API key.')
+      return
+    }
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+    setIsExtracting(true)
     try {
-      const parsed = JSON.parse(resultPayloadInput)
-      setResultData(parsed.data || null)
-      setFieldMatches(Array.isArray(parsed.field_matches) ? parsed.field_matches : [])
+      const indexFormData = new FormData()
+      indexFormData.append('file', pdfFile)
+
+      const indexResponse = await fetch(`${apiBase}/pdf/index`, {
+        method: 'POST',
+        body: indexFormData,
+      })
+
+      if (!indexResponse.ok) {
+        throw new Error('PDF indexing failed. Check backend logs.')
+      }
+
+      const indexPayload = await indexResponse.json()
+      const fileId = indexPayload.file_id
+
+      const extractResponse = await fetch(`${apiBase}/extract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OpenAI-API-Key': openAiApiKey,
+        },
+        body: JSON.stringify({
+          file_id: fileId,
+          json_schema: schema,
+        }),
+      })
+
+      if (!extractResponse.ok) {
+        const errorPayload = await extractResponse.json().catch(() => ({}))
+        throw new Error(errorPayload.detail || 'Extraction request failed.')
+      }
+
+      const extractPayload = await extractResponse.json()
+      const nextMatches = Array.isArray(extractPayload.field_matches) ? extractPayload.field_matches : []
+
+      setResultData(extractPayload.data || null)
+      setFieldMatches(nextMatches)
       setActivePath('')
-    } catch {
-      setResultError('Invalid JSON payload. Paste the backend /extract response shape.')
+
+      console.debug('Extracted coordinate matches', nextMatches)
+    } catch (error) {
+      setExtractError(error instanceof Error ? error.message : 'Unexpected extraction error.')
+    } finally {
+      setIsExtracting(false)
     }
   }
 
@@ -123,15 +188,14 @@ function App() {
               onChange={handleFileChange}
               className="text-sm"
             />
-            {fieldMatches.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActivePath('')}
-                className="rounded-md border border-slate-300 px-2 py-1 text-xs"
-              >
-                Clear Highlight Filter
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleExtract}
+              disabled={isExtracting}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isExtracting ? 'Extracting…' : 'Extract'}
+            </button>
           </div>
 
           <PDFViewer
@@ -157,57 +221,15 @@ function App() {
             </pre>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h3 className="mb-2 text-sm font-semibold">Results + Highlight Mapping</h3>
-            <p className="mb-2 text-xs text-slate-600">
-              Paste backend `/extract` response JSON, then click a field path to highlight its PDF area.
-            </p>
-            <textarea
-              value={resultPayloadInput}
-              onChange={(event) => setResultPayloadInput(event.target.value)}
-              rows={7}
-              className="w-full rounded-md border border-slate-300 p-2 text-xs"
-              placeholder='{"data": {...}, "field_matches": [...]}'
-            />
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleLoadResults}
-                className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white"
-              >
-                Load Result Payload
-              </button>
-              {resultError && <span className="text-xs text-rose-600">{resultError}</span>}
-            </div>
-
-            {resultData && (
-              <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-slate-50 p-3 text-xs text-slate-700">
-                {JSON.stringify(resultData, null, 2)}
-              </pre>
-            )}
-
-            <div className="mt-3 space-y-2">
-              {fieldMatches.length === 0 ? (
-                <p className="text-xs text-slate-500">No field matches loaded yet.</p>
-              ) : (
-                fieldMatches.map((item, index) => (
-                  <button
-                    key={`${item.path}-${index}`}
-                    type="button"
-                    onClick={() => setActivePath(item.path)}
-                    className={`block w-full rounded-md border px-2 py-2 text-left text-xs ${
-                      activePath === item.path
-                        ? 'border-amber-500 bg-amber-50 text-amber-900'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="font-semibold">{item.path}</div>
-                    <div className="text-slate-600">Page {item.page} • Score {Math.round(item.score)}</div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+          <ResultsView
+            resultData={resultData}
+            fieldMatches={fieldMatches}
+            activePath={activePath}
+            onSelectPath={setActivePath}
+            onClearSelection={() => setActivePath('')}
+            loading={isExtracting}
+            error={extractError}
+          />
         </section>
       </main>
     </div>
